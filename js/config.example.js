@@ -1,0 +1,3 @@
+/** Скопируйте в config.js и вставьте данные из Supabase → Project Settings → API */
+window.SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+window.SUPABASE_ANON_KEY = "YOUR_ANON_KEY";

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок — панель учителя</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/course.css">
+<style>
+  body.teacher { background: #0f0e28; }
+  .teacher-wrap { max-width: 1200px; margin: 0 auto; padding: 16px 18px 48px; }
+  .teacher-grid { display: grid; gap: 16px; }
+  @media (min-width: 900px) {
+    .teacher-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+  }
+  .panel { background: var(--ink2); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+  .panel h2 { margin: 0 0 12px; font-family: Unbounded; font-size: 17px; }
+  textarea.draft {
+    width: 100%; min-height: 420px; font: inherit; font-size: 15px; line-height: 1.5;
+    color: var(--paper); background: var(--sur); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px; resize: vertical;
+  }
+  textarea.draft:focus { outline: 3px solid var(--zest); outline-offset: 1px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .room { font-family: Unbounded; font-size: 28px; letter-spacing: .12em; color: var(--zest); }
+  .student-link { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--sur); color: var(--paper); margin-top: 8px; }
+  .hint-box { font-size: 14px; color: var(--dim); margin-top: 10px; line-height: 1.45; }
+  .hint-box code { color: var(--zest); font-size: 13px; }
+  #preview { max-height: 80vh; overflow: auto; border-radius: 12px; border: 1px solid var(--line); }
+  #preview .wrap { padding-bottom: 24px; }
+  label { display: block; font-size: 14px; color: var(--dim); margin: 8px 0 4px; }
+  input.cfg { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--sur); color: var(--paper); }
+  #status { min-height: 1.2em; font-size: 14px; margin-top: 8px; color: var(--dim); }
+</style>
+</head>
+<body class="teacher">
+<div class="teacher-wrap">
+  <header style="padding: 20px 0 8px">
+    <div class="kicker">English · live</div>
+    <h1 style="font-family:Unbounded;font-size:clamp(24px,5vw,34px);margin:8px 0">Панель урока</h1>
+    <p class="lead" style="margin:0">Пишете слева — справа то, что видит Саид. После урока — «Завершить» → тема в архиве на главной.</p>
+  </header>
+
+  <section id="setup" class="panel" hidden>
+    <h2>Старт</h2>
+    <p class="hint-box">По умолчанию урок идёт через <strong>GitHub</strong> (файл <code>live/session.json</code>). Supabase — опционально, для мгновенного обновления.</p>
+    <div class="toolbar">
+      <button class="btn" type="button" id="skip-supabase">Открыть панель урока</button>
+    </div>
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer;color:var(--dim)">Подключить Supabase (необязательно)</summary>
+      <p class="hint-box">SQL: <code>supabase/schema.sql</code> в SQL Editor. Ключи: Project Settings → API.</p>
+      <label>Project URL</label>
+      <input class="cfg" id="sb-url" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+      <label>anon key</label>
+      <input class="cfg" id="sb-key" type="password" placeholder="eyJ..." autocomplete="off">
+      <div class="toolbar">
+        <button class="btn ghost" type="button" id="save-cfg">Сохранить Supabase</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="workspace" class="teacher-grid">
+    <div class="panel">
+      <h2>Текст урока</h2>
+      <div class="toolbar">
+        <button class="btn" type="button" id="new-room">Новая комната</button>
+        <button class="btn ghost" type="button" id="load-template">Шаблон</button>
+        <button class="btn ghost" type="button" id="finish-lesson">Завершить урок</button>
+      </div>
+      <textarea class="draft" id="draft" spellcheck="false"></textarea>
+      <div class="hint-box">
+        <code>#</code> заголовок · <code>&gt;</code> подзаголовок · <code>## Слова</code> · <code>## Правило</code> ·
+        <code>## На занятии</code> · <code>[выбор] вопрос | a / b | a</code> · <code>[письмо] вопрос | подсказка | ответ</code> · <code>## Домашка</code>
+      </div>
+      <p id="status"></p>
+    </div>
+    <div class="panel">
+      <h2>Комната Саида</h2>
+      <p class="hint-box">Режим: <span id="mode-label">—</span></p>
+      <div class="toolbar">
+        <button class="btn ghost" type="button" id="pick-folder">Папка English на диске</button>
+      </div>
+      <p class="hint-box">Перед уроком в терминале: <code>bash scripts/watch-and-push-live.sh</code></p>
+      <p class="hint-box">Код комнаты:</p>
+      <div class="room" id="room-code">—</div>
+      <p class="hint-box">Ссылка (нажмите, чтобы скопировать):</p>
+      <input class="student-link" id="student-link" readonly>
+      <h2 style="margin-top:20px">Превью ученика</h2>
+      <div id="preview"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/lesson-sync.js"></script>
+<script src="js/lesson-parser.js"></script>
+<script src="js/course-engine.js"></script>
+<script src="js/teacher-app.js"></script>
+</body>
+</html>
